@@ -1,29 +1,33 @@
-@Library('Shared')_
-pipeline{
-    agent { label 'dev-server'}
-    
+pipeline {
+    agent { label "rahul" }
     stages{
-        stage("Code clone"){
+        stage("Code"){
             steps{
-                sh "whoami"
-            clone("https://github.com/LondheShubham153/django-notes-app.git","main")
+                echo "Cloning repository from github"
+                git url: "https://github.com/sudiptakhotel/django-notes-app.git" , branch: "main"
             }
         }
-        stage("Code Build"){
+        stage("Build"){
             steps{
-            dockerbuild("notes-app","latest")
+                echo "Building Docker image"
+                sh "docker build -t notes-app:latest ."
             }
         }
-        stage("Push to DockerHub"){
+        stage("Push"){
             steps{
-                dockerpush("dockerHubCreds","notes-app","latest")
+                echo "Pushing the image to DockerHub"
+                withCredentials([usernamePassword(credentialsId: 'agentDockerHubCred', usernameVariable: 'agentDockerHubUser', passwordVariable: 'agentDockerHubPass')]) {
+                    sh "docker login -u ${agentDockerHubUser} -p ${agentDockerHubPass}"
+                    sh "docker tag notes-app:latest sudiptakhotel/notes-app:latest"
+                    sh "docker push sudiptakhotel/notes-app:latest"
+                }
             }
         }
         stage("Deploy"){
             steps{
-                deploy()
+                echo "Deploying the application"
+                sh "docker compose up -d"
             }
         }
-        
     }
 }
